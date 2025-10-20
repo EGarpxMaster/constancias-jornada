@@ -290,7 +290,8 @@ if participantes_df is None or asistencias_df is None or actividades_df is None:
     st.stop()
 
 # Preparar listas de actividades para los selectbox
-conferencias = actividades_df[actividades_df['tipo'].isin(['Conferencia', 'Foro'])]['titulo'].tolist()
+# Solo conferencias con código C1, C2, C3, etc.
+conferencias = actividades_df[actividades_df['codigo'].str.match(r'^C\d+$', na=False)]['titulo'].tolist()
 todas_actividades = actividades_df['titulo'].tolist()
 
 # Paso 1: Verificar correo electrónico
