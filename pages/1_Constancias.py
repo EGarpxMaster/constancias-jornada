@@ -38,7 +38,7 @@ PREGUNTAS_GENERALES = [
     {"id": 6, "texto": "¿Los contenidos desarrollados resultaron útiles?", "tipo": "calificacion_1_5"},
     {"id": 7, "texto": "¿Qué tan relevante consideras que fue el nivel profesional de la JII?", "tipo": "calificacion_1_5"},
     {"id": 8, "texto": "¿Qué conferencia magistral te pareció la más relevante?", "tipo": "select_conferencia"},
-    {"id": 10, "texto": "¿Qué actividad consideras que fue la de mayor relevancia?", "tipo": "select_actividad"},
+    {"id": 10, "texto": "¿Qué actividad consideras que fue la de mayor relevancia?", "tipo": "select_tipo_actividad"},
     {"id": 11, "texto": "¿Cuáles fueron para ti los puntos fuertes de la JII? ¿Por qué?", "tipo": "texto_largo"},
     {"id": 12, "texto": "¿Qué parte te gustó menos? ¿Por qué?", "tipo": "texto_largo"},
     {"id": 13, "texto": "Propón tres temas de tu interés para la edición 2026 de la JII.", "tipo": "texto_largo"},
@@ -292,7 +292,16 @@ if participantes_df is None or asistencias_df is None or actividades_df is None:
 # Preparar listas de actividades para los selectbox
 # Solo conferencias con código C1, C2, C3, etc.
 conferencias = actividades_df[actividades_df['codigo'].str.match(r'^C\d+$', na=False)]['titulo'].tolist()
-todas_actividades = actividades_df['titulo'].tolist()
+
+# Tipos de actividades genéricas
+tipos_actividades = [
+    "Conferencia",
+    "Workshop",
+    "Panel de Egresados",
+    "Mundialito mexicano",
+    "Conversatorio",
+    "Estancia de movilidad de Posgrado"
+]
 
 # Paso 1: Verificar correo electrónico
 st.header("1️⃣ Verificación de Participación")
@@ -356,10 +365,10 @@ if email:
                             options=conferencias,
                             key=f"preg_{pregunta['id']}"
                         )
-                    elif pregunta['tipo'] == 'select_actividad':
+                    elif pregunta['tipo'] == 'select_tipo_actividad':
                         respuestas[pregunta['id']] = st.selectbox(
                             f"**{pregunta['texto']}**",
-                            options=todas_actividades,
+                            options=tipos_actividades,
                             key=f"preg_{pregunta['id']}"
                         )
                     elif pregunta['tipo'] == 'texto_corto':
