@@ -16,11 +16,72 @@ from PyPDF2 import PdfReader, PdfWriter
 # Configuración
 st.set_page_config(page_title="Constancias - JII 2025", page_icon="📝", layout="wide")
 
+# CSS personalizado con paleta de colores
+st.markdown("""
+<style>
+    :root {
+        --primary-color: #1b1c39;
+        --secondary-color: #1ECECA;
+        --text-color: #2d3e50;
+        --light-color: #f9f9f9;
+        --font-family: "Montserrat", sans-serif;
+        --transition-speed: 0.3s;
+    }
+    
+    /* Estilos generales */
+    .stApp {
+        background-color: var(--light-color);
+    }
+    
+    /* Títulos */
+    h1, h2, h3 {
+        color: var(--primary-color) !important;
+        font-family: var(--font-family);
+    }
+    
+    /* Botones */
+    .stButton > button {
+        background-color: var(--secondary-color) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 0.5rem 2rem !important;
+        font-weight: 600 !important;
+        transition: all var(--transition-speed) ease !important;
+    }
+    
+    .stButton > button:hover {
+        background-color: #18b3af !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(30, 206, 202, 0.3);
+    }
+    
+    /* Inputs y selectbox */
+    .stTextInput > div > div > input,
+    .stSelectbox > div > div > select {
+        border-color: var(--secondary-color) !important;
+        border-radius: 8px !important;
+    }
+    
+    /* Success, info, warning boxes */
+    .stSuccess {
+        background-color: rgba(30, 206, 202, 0.1) !important;
+        border-left: 4px solid var(--secondary-color) !important;
+    }
+    
+    /* Containers */
+    .element-container {
+        transition: all var(--transition-speed) ease;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "datos"
 ASSETS_DIR = ROOT / "assets"
 FONT_DIR = ASSETS_DIR / "fonts"
 PLANTILLAS_DIR = ASSETS_DIR / "plantillas"
+IMAGES_DIR = ASSETS_DIR / "images"
 
 # Registrar fuente
 try:
@@ -60,39 +121,44 @@ PREGUNTAS_MUNDIALITO = [
 # Funciones auxiliares
 @st.cache_data
 def cargar_datos():
-    """Carga los datos de participantes, asistencias y actividades"""
+    """Carga los datos de participantes, asistencias, actividades y equipos"""
     try:
         # Debug: mostrar rutas que se están usando
         participantes_path = DATA_DIR / "participantes.csv"
         asistencias_path = DATA_DIR / "asistencias.csv"
         actividades_path = DATA_DIR / "actividades.csv"
+        equipos_path = DATA_DIR / "equipos_concurso.csv"
         
         # Verificar que los archivos existen
         if not participantes_path.exists():
             st.error(f"❌ No se encuentra el archivo: {participantes_path}")
-            return None, None, None
+            return None, None, None, None
         if not asistencias_path.exists():
             st.error(f"❌ No se encuentra el archivo: {asistencias_path}")
-            return None, None, None
+            return None, None, None, None
         if not actividades_path.exists():
             st.error(f"❌ No se encuentra el archivo: {actividades_path}")
-            return None, None, None
+            return None, None, None, None
+        if not equipos_path.exists():
+            st.error(f"❌ No se encuentra el archivo: {equipos_path}")
+            return None, None, None, None
             
         participantes = pd.read_csv(participantes_path)
         asistencias = pd.read_csv(asistencias_path)
         actividades = pd.read_csv(actividades_path)
+        equipos = pd.read_csv(equipos_path)
         
         # Agregar columna encuesta_completada si no existe
         if 'encuesta_completada' not in participantes.columns:
             participantes['encuesta_completada'] = False
             
-        return participantes, asistencias, actividades
+        return participantes, asistencias, actividades, equipos
     except Exception as e:
         st.error(f"❌ Error al cargar datos: {e}")
         st.error(f"📁 DATA_DIR configurado como: {DATA_DIR}")
-        return None, None, None
+        return None, None, None, None
 
-def verificar_elegibilidad(email, participantes, asistencias):
+def verificar_elegibilidad(email, participantes, asistencias, equipos):
     """Verifica si el participante es elegible para constancias"""
     # Buscar participante
     participante = participantes[participantes['email'].str.lower() == email.lower()]
@@ -109,9 +175,23 @@ def verificar_elegibilidad(email, participantes, asistencias):
     asistencias_participante = asistencias[asistencias['participante_email'].str.lower() == email.lower()]
     participo_workshop = any(asistencias_participante['actividad_codigo'].str.startswith('W'))
     
-    # Verificar participación en mundialito (necesitamos verificar en equipos_concurso.csv)
-    # Por ahora, asumimos que no participó
+    # Verificar participación en mundialito - buscar email en captain o cualquiera de los 5 miembros
     participo_mundialito = False
+    email_lower = email.lower()
+    
+    # Verificar si el email aparece como capitán o miembro del equipo
+    if not equipos.empty:
+        es_capitan = equipos['email_capitan'].str.lower() == email_lower
+        es_miembro_1 = equipos['email_miembro_1'].str.lower() == email_lower
+        es_miembro_2 = equipos['email_miembro_2'].str.lower() == email_lower
+        es_miembro_3 = equipos['email_miembro_3'].str.lower() == email_lower
+        es_miembro_4 = equipos['email_miembro_4'].str.lower() == email_lower
+        es_miembro_5 = equipos['email_miembro_5'].str.lower() == email_lower
+        
+        participo_mundialito = any([
+            es_capitan.any(), es_miembro_1.any(), es_miembro_2.any(),
+            es_miembro_3.any(), es_miembro_4.any(), es_miembro_5.any()
+        ])
     
     elegibilidad = {
         'participante': participante,
@@ -280,12 +360,14 @@ def generar_constancia_pdf(participante, tipo_constancia):
 
 # Header
 st.title("📝 Obtén tus Constancias")
+st.markdown("**Jornada de Ingeniería Industrial 2025**")
+
 st.markdown("---")
 
 # Cargar datos
-participantes_df, asistencias_df, actividades_df = cargar_datos()
+participantes_df, asistencias_df, actividades_df, equipos_df = cargar_datos()
 
-if participantes_df is None or asistencias_df is None or actividades_df is None:
+if participantes_df is None or asistencias_df is None or actividades_df is None or equipos_df is None:
     st.error("No se pudieron cargar los datos. Por favor, contacta al administrador.")
     st.stop()
 
@@ -309,7 +391,7 @@ st.header("1️⃣ Verificación de Participación")
 email = st.text_input("📧 Ingresa tu correo electrónico:", placeholder="Correo electrónico")
 
 if email:
-    elegibilidad, error = verificar_elegibilidad(email, participantes_df, asistencias_df)
+    elegibilidad, error = verificar_elegibilidad(email, participantes_df, asistencias_df, equipos_df)
     
     if error:
         st.error(error)

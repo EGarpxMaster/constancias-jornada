@@ -14,45 +14,67 @@ st.set_page_config(
 
 # Directorio raíz
 ROOT = Path(__file__).resolve().parent
-DATA_DIR = ROOT / "Multipage App" / "datos"
 ASSETS_DIR = ROOT / "assets"
+IMAGES_DIR = ASSETS_DIR / "images"
 
-# Estilo CSS personalizado
+# Estilo CSS personalizado con paleta de colores
 st.markdown("""
     <style>
+    :root {
+        --primary-color: #1b1c39;
+        --secondary-color: #1ECECA;
+        --text-color: #2d3e50;
+        --light-color: #f9f9f9;
+        --font-family: "Montserrat", sans-serif;
+        --transition-speed: 0.3s;
+    }
+    
+    .stApp {
+        background-color: var(--light-color);
+    }
+    
+    h1, h2, h3 {
+        color: var(--primary-color) !important;
+        font-family: var(--font-family);
+    }
+    
     .main-header {
         font-size: 2.5rem;
         font-weight: bold;
-        color: #1f77b4;
+        color: var(--primary-color);
         text-align: center;
         margin-bottom: 2rem;
     }
     .sub-header {
         font-size: 1.5rem;
-        color: #555;
+        color: var(--secondary-color);
         text-align: center;
         margin-bottom: 1rem;
+        font-weight: 600;
     }
     .info-box {
-        background-color: #f0f2f6;
+        background-color: white;
         padding: 1.5rem;
         border-radius: 10px;
-        border-left: 5px solid #1f77b4;
+        border-left: 5px solid var(--secondary-color);
         margin: 1rem 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
-    .success-box {
-        background-color: #d4edda;
-        padding: 1rem;
-        border-radius: 5px;
-        border-left: 5px solid #28a745;
-        margin: 1rem 0;
+    
+    .stButton > button {
+        background-color: var(--secondary-color) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 0.5rem 2rem !important;
+        font-weight: 600 !important;
+        transition: all var(--transition-speed) ease !important;
     }
-    .warning-box {
-        background-color: #fff3cd;
-        padding: 1rem;
-        border-radius: 5px;
-        border-left: 5px solid #ffc107;
-        margin: 1rem 0;
+    
+    .stButton > button:hover {
+        background-color: #18b3af !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(30, 206, 202, 0.3);
     }
     </style>
 """, unsafe_allow_html=True)
