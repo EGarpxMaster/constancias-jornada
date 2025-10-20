@@ -17,7 +17,7 @@ from PyPDF2 import PdfReader, PdfWriter
 st.set_page_config(page_title="Constancias - JII 2025", page_icon="📝", layout="wide")
 
 ROOT = Path(__file__).resolve().parent.parent
-DATA_DIR = ROOT / "Multipage App" / "datos"
+DATA_DIR = ROOT / "datos"
 ASSETS_DIR = ROOT / "assets"
 FONT_DIR = ASSETS_DIR / "fonts"
 PLANTILLAS_DIR = ASSETS_DIR / "plantillas"
@@ -37,8 +37,8 @@ PREGUNTAS_GENERALES = [
     {"id": 5, "texto": "¿Cumplieron tus expectativas las actividades en las que participaste?", "tipo": "calificacion_1_5"},
     {"id": 6, "texto": "¿Los contenidos desarrollados resultaron útiles?", "tipo": "calificacion_1_5"},
     {"id": 7, "texto": "¿Qué tan relevante consideras que fue el nivel profesional de la JII?", "tipo": "calificacion_1_5"},
-    {"id": 8, "texto": "¿Qué conferencia magistral te pareció la más relevante?", "tipo": "texto_corto"},
-    {"id": 10, "texto": "¿Qué actividad consideras que fue la de mayor relevancia?", "tipo": "texto_corto"},
+    {"id": 8, "texto": "¿Qué conferencia magistral te pareció la más relevante?", "tipo": "select_conferencia"},
+    {"id": 10, "texto": "¿Qué actividad consideras que fue la de mayor relevancia?", "tipo": "select_actividad"},
     {"id": 11, "texto": "¿Cuáles fueron para ti los puntos fuertes de la JII? ¿Por qué?", "tipo": "texto_largo"},
     {"id": 12, "texto": "¿Qué parte te gustó menos? ¿Por qué?", "tipo": "texto_largo"},
     {"id": 13, "texto": "Propón tres temas de tu interés para la edición 2026 de la JII.", "tipo": "texto_largo"},
@@ -60,19 +60,37 @@ PREGUNTAS_MUNDIALITO = [
 # Funciones auxiliares
 @st.cache_data
 def cargar_datos():
-    """Carga los datos de participantes y asistencias"""
+    """Carga los datos de participantes, asistencias y actividades"""
     try:
-        participantes = pd.read_csv(DATA_DIR / "participantes.csv")
-        asistencias = pd.read_csv(DATA_DIR / "asistencias.csv")
+        # Debug: mostrar rutas que se están usando
+        participantes_path = DATA_DIR / "participantes.csv"
+        asistencias_path = DATA_DIR / "asistencias.csv"
+        actividades_path = DATA_DIR / "actividades.csv"
+        
+        # Verificar que los archivos existen
+        if not participantes_path.exists():
+            st.error(f"❌ No se encuentra el archivo: {participantes_path}")
+            return None, None, None
+        if not asistencias_path.exists():
+            st.error(f"❌ No se encuentra el archivo: {asistencias_path}")
+            return None, None, None
+        if not actividades_path.exists():
+            st.error(f"❌ No se encuentra el archivo: {actividades_path}")
+            return None, None, None
+            
+        participantes = pd.read_csv(participantes_path)
+        asistencias = pd.read_csv(asistencias_path)
+        actividades = pd.read_csv(actividades_path)
         
         # Agregar columna encuesta_completada si no existe
         if 'encuesta_completada' not in participantes.columns:
             participantes['encuesta_completada'] = False
             
-        return participantes, asistencias
+        return participantes, asistencias, actividades
     except Exception as e:
-        st.error(f"Error al cargar datos: {e}")
-        return None, None
+        st.error(f"❌ Error al cargar datos: {e}")
+        st.error(f"📁 DATA_DIR configurado como: {DATA_DIR}")
+        return None, None, None
 
 def verificar_elegibilidad(email, participantes, asistencias):
     """Verifica si el participante es elegible para constancias"""
@@ -265,16 +283,20 @@ st.title("📝 Obtén tus Constancias")
 st.markdown("---")
 
 # Cargar datos
-participantes_df, asistencias_df = cargar_datos()
+participantes_df, asistencias_df, actividades_df = cargar_datos()
 
-if participantes_df is None or asistencias_df is None:
+if participantes_df is None or asistencias_df is None or actividades_df is None:
     st.error("No se pudieron cargar los datos. Por favor, contacta al administrador.")
     st.stop()
+
+# Preparar listas de actividades para los selectbox
+conferencias = actividades_df[actividades_df['tipo'].isin(['Conferencia', 'Foro'])]['titulo'].tolist()
+todas_actividades = actividades_df['titulo'].tolist()
 
 # Paso 1: Verificar correo electrónico
 st.header("1️⃣ Verificación de Participación")
 
-email = st.text_input("📧 Ingresa tu correo electrónico:", placeholder="ejemplo@ucaribe.edu.mx")
+email = st.text_input("📧 Ingresa tu correo electrónico:", placeholder="Correo electrónico")
 
 if email:
     elegibilidad, error = verificar_elegibilidad(email, participantes_df, asistencias_df)
@@ -321,10 +343,22 @@ if email:
                 st.subheader("📊 Preguntas Generales")
                 for pregunta in PREGUNTAS_GENERALES:
                     if pregunta['tipo'] == 'calificacion_1_5':
-                        respuestas[pregunta['id']] = st.select_slider(
+                        respuestas[pregunta['id']] = st.selectbox(
                             f"**{pregunta['texto']}**",
                             options=[1, 2, 3, 4, 5],
-                            value=3,
+                            index=4,  # Valor por defecto: 5
+                            key=f"preg_{pregunta['id']}"
+                        )
+                    elif pregunta['tipo'] == 'select_conferencia':
+                        respuestas[pregunta['id']] = st.selectbox(
+                            f"**{pregunta['texto']}**",
+                            options=conferencias,
+                            key=f"preg_{pregunta['id']}"
+                        )
+                    elif pregunta['tipo'] == 'select_actividad':
+                        respuestas[pregunta['id']] = st.selectbox(
+                            f"**{pregunta['texto']}**",
+                            options=todas_actividades,
                             key=f"preg_{pregunta['id']}"
                         )
                     elif pregunta['tipo'] == 'texto_corto':
@@ -344,10 +378,10 @@ if email:
                     st.subheader("🔧 Preguntas sobre el Workshop")
                     for pregunta in PREGUNTAS_WORKSHOP:
                         if pregunta['tipo'] == 'calificacion_1_5':
-                            respuestas[pregunta['id']] = st.select_slider(
+                            respuestas[pregunta['id']] = st.selectbox(
                                 f"**{pregunta['texto']}**",
                                 options=[1, 2, 3, 4, 5],
-                                value=3,
+                                index=4,  # Valor por defecto: 5
                                 key=f"preg_{pregunta['id']}"
                             )
                         elif pregunta['tipo'] == 'texto_largo':
@@ -362,10 +396,10 @@ if email:
                     st.subheader("⚽ Preguntas sobre el Mundialito")
                     for pregunta in PREGUNTAS_MUNDIALITO:
                         if pregunta['tipo'] == 'calificacion_1_5':
-                            respuestas[pregunta['id']] = st.select_slider(
+                            respuestas[pregunta['id']] = st.selectbox(
                                 f"**{pregunta['texto']}**",
                                 options=[1, 2, 3, 4, 5],
-                                value=3,
+                                index=4,  # Valor por defecto: 5
                                 key=f"preg_{pregunta['id']}"
                             )
                         elif pregunta['tipo'] == 'texto_largo':
