@@ -75,13 +75,54 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(30, 206, 202, 0.3);
     }
     
+    /* Botón de enviar formulario - usar paleta original */
+    .stFormSubmitButton > button {
+        background-color: var(--secondary-color) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 0.75rem 2rem !important;
+        font-weight: 600 !important;
+        font-size: 1.1rem !important;
+        transition: all var(--transition-speed) ease !important;
+        width: 100%;
+    }
+    
+    .stFormSubmitButton > button:hover {
+        background-color: #18b3af !important;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(30, 206, 202, 0.4);
+    }
+    
     /* Inputs y selectbox */
     .stTextInput > div > div > input,
-    .stSelectbox > div > div > select {
+    .stSelectbox > div > div > select,
+    .stSelectbox [data-baseweb="select"] > div,
+    .stSelectbox [data-baseweb="select"] input {
         border-color: var(--secondary-color) !important;
         border-radius: 8px !important;
         background-color: white !important;
         color: var(--text-color) !important;
+    }
+    
+    /* Selectbox específico - forzar fondo blanco */
+    [data-baseweb="select"] {
+        background-color: white !important;
+    }
+    
+    [data-baseweb="select"] > div {
+        background-color: white !important;
+        color: var(--text-color) !important;
+    }
+    
+    /* Opciones del selectbox */
+    [role="option"] {
+        background-color: white !important;
+        color: var(--text-color) !important;
+    }
+    
+    [role="option"]:hover {
+        background-color: rgba(30, 206, 202, 0.1) !important;
     }
     
     /* Text areas */
