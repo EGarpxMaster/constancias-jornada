@@ -28,15 +28,34 @@ st.markdown("""
         --transition-speed: 0.3s;
     }
     
+    /* Forzar tema claro */
+    [data-testid="stAppViewContainer"] {
+        background-color: #f9f9f9 !important;
+    }
+    
+    [data-testid="stHeader"] {
+        background-color: #f9f9f9 !important;
+    }
+    
+    [data-testid="stSidebar"] {
+        background-color: #ffffff !important;
+    }
+    
     /* Estilos generales */
     .stApp {
-        background-color: var(--light-color);
+        background-color: var(--light-color) !important;
+        color: var(--text-color) !important;
     }
     
     /* Títulos */
     h1, h2, h3 {
         color: var(--primary-color) !important;
         font-family: var(--font-family);
+    }
+    
+    /* Texto general */
+    p, span, div, label {
+        color: var(--text-color) !important;
     }
     
     /* Botones */
@@ -61,17 +80,51 @@ st.markdown("""
     .stSelectbox > div > div > select {
         border-color: var(--secondary-color) !important;
         border-radius: 8px !important;
+        background-color: white !important;
+        color: var(--text-color) !important;
+    }
+    
+    /* Text areas */
+    .stTextArea > div > div > textarea {
+        border-color: var(--secondary-color) !important;
+        border-radius: 8px !important;
+        background-color: white !important;
+        color: var(--text-color) !important;
     }
     
     /* Success, info, warning boxes */
     .stSuccess {
         background-color: rgba(30, 206, 202, 0.1) !important;
         border-left: 4px solid var(--secondary-color) !important;
+        color: var(--text-color) !important;
+    }
+    
+    .stInfo {
+        background-color: rgba(30, 206, 202, 0.08) !important;
+        color: var(--text-color) !important;
+    }
+    
+    .stWarning {
+        background-color: rgba(255, 193, 7, 0.1) !important;
+        color: var(--text-color) !important;
+    }
+    
+    .stError {
+        background-color: rgba(244, 67, 54, 0.1) !important;
+        color: var(--text-color) !important;
     }
     
     /* Containers */
     .element-container {
         transition: all var(--transition-speed) ease;
+    }
+    
+    /* Formularios */
+    [data-testid="stForm"] {
+        background-color: white !important;
+        border: 1px solid #e0e0e0 !important;
+        border-radius: 12px !important;
+        padding: 2rem !important;
     }
 </style>
 """, unsafe_allow_html=True)

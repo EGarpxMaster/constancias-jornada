@@ -29,36 +29,55 @@ st.markdown("""
         --transition-speed: 0.3s;
     }
     
-    .stApp {
-        background-color: var(--light-color);
+    /* Forzar tema claro */
+    [data-testid="stAppViewContainer"] {
+        background-color: #f9f9f9 !important;
     }
     
-    h1, h2, h3 {
+    [data-testid="stHeader"] {
+        background-color: #f9f9f9 !important;
+    }
+    
+    [data-testid="stSidebar"] {
+        background-color: #ffffff !important;
+    }
+    
+    .stApp {
+        background-color: var(--light-color) !important;
+        color: var(--text-color) !important;
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
         color: var(--primary-color) !important;
         font-family: var(--font-family);
+    }
+    
+    p, span, div, label, li {
+        color: var(--text-color) !important;
     }
     
     .main-header {
         font-size: 2.5rem;
         font-weight: bold;
-        color: var(--primary-color);
+        color: var(--primary-color) !important;
         text-align: center;
         margin-bottom: 2rem;
     }
     .sub-header {
         font-size: 1.5rem;
-        color: var(--secondary-color);
+        color: var(--secondary-color) !important;
         text-align: center;
         margin-bottom: 1rem;
         font-weight: 600;
     }
     .info-box {
-        background-color: white;
+        background-color: white !important;
         padding: 1.5rem;
         border-radius: 10px;
         border-left: 5px solid var(--secondary-color);
         margin: 1rem 0;
         box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        color: var(--text-color) !important;
     }
     
     .stButton > button {
@@ -75,6 +94,12 @@ st.markdown("""
         background-color: #18b3af !important;
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(30, 206, 202, 0.3);
+    }
+    
+    /* Info boxes */
+    .stInfo {
+        background-color: rgba(30, 206, 202, 0.08) !important;
+        color: var(--text-color) !important;
     }
     </style>
 """, unsafe_allow_html=True)
