@@ -478,8 +478,8 @@ def generar_constancia_pdf(participante, tipo_constancia):
             except:
                 can.setFont("Helvetica-Bold", font_size)
             
-            # Usar el nombre completo tal como está en el CSV
-            nombre_completo = participante['nombre_completo']
+            # Usar el nombre completo en MAYÚSCULAS para homogeneidad
+            nombre_completo = participante['nombre_completo'].upper()
             
             can.drawCentredString(width/2, height - 300, nombre_completo)
             
