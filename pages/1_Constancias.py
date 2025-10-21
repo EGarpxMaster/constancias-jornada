@@ -14,6 +14,13 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from PyPDF2 import PdfReader, PdfWriter
 
+# Importar handler de almacenamiento persistente (Supabase)
+try:
+    from utils.supabase_handler import SupabaseHandler
+    SUPABASE_AVAILABLE = True
+except:
+    SUPABASE_AVAILABLE = False
+
 # Configuración
 st.set_page_config(page_title="Constancias - JII 2025", page_icon="📝", layout="wide")
 
@@ -230,6 +237,11 @@ PREGUNTAS_MUNDIALITO = [
     {"id": 20, "texto": "Comentarios sobre el Mundialito Mexicano", "tipo": "texto_largo"},
 ]
 
+# Crear diccionario de preguntas para Google Sheets
+PREGUNTAS_DICT = {}
+for pregunta in PREGUNTAS_GENERALES + PREGUNTAS_WORKSHOP + PREGUNTAS_MUNDIALITO:
+    PREGUNTAS_DICT[pregunta['id']] = pregunta['texto']
+
 # Funciones auxiliares
 @st.cache_data
 def cargar_datos():
@@ -317,12 +329,34 @@ def verificar_elegibilidad(email, participantes, asistencias, equipos):
     return elegibilidad, None
 
 def guardar_respuestas_encuesta(email, respuestas, participantes_df):
-    """Guarda las respuestas de la encuesta"""
+    """Guarda las respuestas de la encuesta en Supabase y como respaldo en CSV"""
     try:
-        # Crear archivo CSV de respuestas si no existe
-        respuestas_file = DATA_DIR / "encuesta_respuestas.csv"
+        # Obtener nombre completo del participante
+        participante = participantes_df[participantes_df['email'].str.lower() == email.lower()]
+        if participante.empty:
+            st.error("No se encontró el participante")
+            return False
+        nombre_completo = participante.iloc[0]['nombre_completo']
         
-        # Preparar datos para guardar
+        # 1. Intentar guardar en Supabase (almacenamiento persistente)
+        cloud_storage_success = False
+        
+        if SUPABASE_AVAILABLE:
+            try:
+                supabase_handler = SupabaseHandler()
+                supabase_handler.guardar_respuestas(email, nombre_completo, respuestas, PREGUNTAS_DICT)
+                cloud_storage_success = True
+                st.success("✅ Respuestas guardadas en Supabase (persistente)")
+            except Exception as e:
+                st.warning(f"⚠️ Supabase no disponible: {str(e)[:80]}...")
+        
+        # Si Supabase no funcionó, mostrar advertencia
+        if not cloud_storage_success:
+            st.warning("⚠️ Almacenamiento en la nube no configurado")
+            st.info("💡 Las respuestas se guardarán solo localmente. Configura Supabase para almacenamiento persistente. Ver OPCION_SIMPLE_SUPABASE.md")
+        
+        # 2. Guardar en CSV local como respaldo (siempre)
+        respuestas_file = DATA_DIR / "encuesta_respuestas.csv"
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         respuestas_data = []
         
@@ -336,26 +370,25 @@ def guardar_respuestas_encuesta(email, respuestas, participantes_df):
         
         df_respuestas = pd.DataFrame(respuestas_data)
         
-        # Guardar o actualizar respuestas
+        # Guardar o actualizar respuestas en CSV
         if respuestas_file.exists():
             df_existente = pd.read_csv(respuestas_file)
-            # Eliminar respuestas previas del mismo participante si existe la columna y hay datos
             if not df_existente.empty and 'participante_email' in df_existente.columns:
                 df_existente = df_existente[df_existente['participante_email'].str.lower() != email.lower()]
                 df_respuestas = pd.concat([df_existente, df_respuestas], ignore_index=True)
-        else:
-            # Si no existe el archivo, solo usamos las respuestas nuevas
-            pass
         
         df_respuestas.to_csv(respuestas_file, index=False)
         
-        # Actualizar participantes.csv
+        # 3. Actualizar participantes.csv
         participantes_df.loc[participantes_df['email'].str.lower() == email.lower(), 'encuesta_completada'] = True
         participantes_df.to_csv(DATA_DIR / "participantes.csv", index=False)
         
+        if not cloud_storage_success:
+            st.info("💾 Respuestas guardadas localmente como respaldo.")
+        
         return True
     except Exception as e:
-        st.error(f"Error al guardar respuestas: {e}")
+        st.error(f"❌ Error al guardar respuestas: {e}")
         return False
 
 def generar_constancia_pdf(participante, tipo_constancia):

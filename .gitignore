@@ -47,6 +47,10 @@ env/
 .env
 .env.local
 
+# Google Sheets Credentials - NUNCA SUBIR ESTAS CREDENCIALES
+credentials.json
+**/credentials.json
+
 # Logs
 *.log
 
