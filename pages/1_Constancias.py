@@ -596,13 +596,15 @@ if email:
                     elif pregunta['tipo'] == 'select_conferencia':
                         respuestas[pregunta['id']] = st.selectbox(
                             f"**{pregunta['texto']}**",
-                            options=conferencias,
+                            options=["Selecciona una conferencia"] + conferencias,
+                            index=0,
                             key=f"preg_{pregunta['id']}"
                         )
                     elif pregunta['tipo'] == 'select_tipo_actividad':
                         respuestas[pregunta['id']] = st.selectbox(
                             f"**{pregunta['texto']}**",
-                            options=tipos_actividades,
+                            options=["Selecciona una actividad"] + tipos_actividades,
+                            index=0,
                             key=f"preg_{pregunta['id']}"
                         )
                     elif pregunta['tipo'] == 'texto_corto':
@@ -642,8 +644,8 @@ if email:
                         if pregunta['tipo'] == 'calificacion_1_5':
                             respuestas[pregunta['id']] = st.selectbox(
                                 f"**{pregunta['texto']}**",
-                                options=[1, 2, 3, 4, 5],
-                                index=4,  # Valor por defecto: 5
+                                options=["Selecciona una calificación", 5, 4, 3, 2, 1],
+                                index=0,  # Placeholder por defecto
                                 key=f"preg_{pregunta['id']}"
                             )
                         elif pregunta['tipo'] == 'texto_largo':
@@ -656,11 +658,13 @@ if email:
                 submitted = st.form_submit_button("✅ Enviar Encuesta", type="primary", use_container_width=True)
                 
                 if submitted:
-                    # Validar respuestas obligatorias
-                    respuestas_vacias = [p['texto'] for p in PREGUNTAS_GENERALES[:8] if not respuestas.get(p['id'])]
+                    # Validar respuestas obligatorias (incluyendo que no sean el placeholder)
+                    placeholders = ["Selecciona una calificación", "Selecciona una conferencia", "Selecciona una actividad"]
+                    respuestas_vacias = [p['texto'] for p in PREGUNTAS_GENERALES[:8] 
+                                        if not respuestas.get(p['id']) or respuestas.get(p['id']) in placeholders]
                     
                     if respuestas_vacias:
-                        st.error("⚠️ Por favor, completa todas las preguntas obligatorias.")
+                        st.error("⚠️ Por favor, completa todas las preguntas obligatorias y selecciona opciones válidas.")
                     else:
                         if guardar_respuestas_encuesta(email, respuestas, participantes_df):
                             st.success("✅ ¡Encuesta enviada exitosamente!")
