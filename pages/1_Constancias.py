@@ -589,8 +589,8 @@ if email:
                     if pregunta['tipo'] == 'calificacion_1_5':
                         respuestas[pregunta['id']] = st.selectbox(
                             f"**{pregunta['texto']}**",
-                            options=[1, 2, 3, 4, 5],
-                            index=4,  # Valor por defecto: 5
+                            options=["Selecciona una calificación", 5, 4, 3, 2, 1],
+                            index=0,  # Placeholder por defecto
                             key=f"preg_{pregunta['id']}"
                         )
                     elif pregunta['tipo'] == 'select_conferencia':
@@ -624,8 +624,8 @@ if email:
                         if pregunta['tipo'] == 'calificacion_1_5':
                             respuestas[pregunta['id']] = st.selectbox(
                                 f"**{pregunta['texto']}**",
-                                options=[1, 2, 3, 4, 5],
-                                index=4,  # Valor por defecto: 5
+                                options=["Selecciona una calificación", 5, 4, 3, 2, 1],
+                                index=0,  # Placeholder por defecto
                                 key=f"preg_{pregunta['id']}"
                             )
                         elif pregunta['tipo'] == 'texto_largo':
