@@ -430,8 +430,8 @@ def generar_constancia_pdf(participante, tipo_constancia):
             # Configurar color del texto: rgba(4, 68, 153) -> RGB en escala 0-1
             can.setFillColorRGB(4/255, 68/255, 153/255)
             
-            # Usar el nombre completo tal como está en el CSV (ya está en formato correcto)
-            nombre_completo = participante['nombre_completo']
+            # Usar el nombre completo en MAYÚSCULAS para homogeneidad
+            nombre_completo = participante['nombre_completo'].upper()
             
             # Centrar el texto horizontalmente usando drawCentredString
             # La posición X será el centro de la página automáticamente
