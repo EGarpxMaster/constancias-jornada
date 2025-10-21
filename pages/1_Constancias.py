@@ -346,9 +346,9 @@ def guardar_respuestas_encuesta(email, respuestas, participantes_df):
                 supabase_handler = SupabaseHandler()
                 supabase_handler.guardar_respuestas(email, nombre_completo, respuestas, PREGUNTAS_DICT)
                 cloud_storage_success = True
-                st.success("✅ Respuestas guardadas en Supabase (persistente)")
+                st.success("✅ Respuestas guardadas")
             except Exception as e:
-                st.warning(f"⚠️ Supabase no disponible: {str(e)[:80]}...")
+                st.warning(f"⚠️ Base de datos no disponible: {str(e)[:80]}...")
         
         # Si Supabase no funcionó, mostrar advertencia
         if not cloud_storage_success:
