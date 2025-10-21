@@ -6,6 +6,7 @@ import pandas as pd
 from pathlib import Path
 from datetime import datetime
 import io
+import time
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
@@ -92,6 +93,23 @@ st.markdown("""
         background-color: #18b3af !important;
         transform: translateY(-2px);
         box-shadow: 0 6px 16px rgba(30, 206, 202, 0.4);
+    }
+    
+    /* Botones de descarga - usar paleta de colores */
+    .stDownloadButton > button {
+        background-color: var(--secondary-color) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 0.5rem 2rem !important;
+        font-weight: 600 !important;
+        transition: all var(--transition-speed) ease !important;
+    }
+    
+    .stDownloadButton > button:hover {
+        background-color: #18b3af !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(30, 206, 202, 0.3);
     }
     
     /* Inputs y selectbox */
@@ -321,9 +339,13 @@ def guardar_respuestas_encuesta(email, respuestas, participantes_df):
         # Guardar o actualizar respuestas
         if respuestas_file.exists():
             df_existente = pd.read_csv(respuestas_file)
-            # Eliminar respuestas previas del mismo participante
-            df_existente = df_existente[df_existente['participante_email'].str.lower() != email.lower()]
-            df_respuestas = pd.concat([df_existente, df_respuestas], ignore_index=True)
+            # Eliminar respuestas previas del mismo participante si existe la columna y hay datos
+            if not df_existente.empty and 'participante_email' in df_existente.columns:
+                df_existente = df_existente[df_existente['participante_email'].str.lower() != email.lower()]
+                df_respuestas = pd.concat([df_existente, df_respuestas], ignore_index=True)
+        else:
+            # Si no existe el archivo, solo usamos las respuestas nuevas
+            pass
         
         df_respuestas.to_csv(respuestas_file, index=False)
         
@@ -355,32 +377,39 @@ def generar_constancia_pdf(participante, tipo_constancia):
             pdf_reader = PdfReader(str(plantilla_path))
             pdf_writer = PdfWriter()
             
-            # Crear overlay con el nombre
+            # Obtener dimensiones de la página de la plantilla
+            page = pdf_reader.pages[0]
+            media_box = page.mediabox
+            page_width = float(media_box.width)
+            page_height = float(media_box.height)
+            
+            # Crear overlay con el nombre usando las dimensiones correctas de la plantilla
             packet = io.BytesIO()
-            can = canvas.Canvas(packet, pagesize=letter)
+            can = canvas.Canvas(packet, pagesize=(page_width, page_height))
             
-            # Configurar fuente
+            # Configurar fuente con tamaño más grande
+            font_size = 32
             try:
-                can.setFont("OldStandardTT-Bold", 24)
+                can.setFont("OldStandardTT-Bold", font_size)
             except:
-                can.setFont("Helvetica-Bold", 24)
+                can.setFont("Helvetica-Bold", font_size)
             
-            # Nombre completo (nombres primero)
-            nombre_partes = participante['nombre_completo'].split()
-            if len(nombre_partes) >= 2:
-                # Asumiendo formato: Apellido1 Apellido2 Nombre1 Nombre2
-                nombres = ' '.join(nombre_partes[2:]) if len(nombre_partes) > 2 else nombre_partes[-1]
-                apellidos = ' '.join(nombre_partes[:2]) if len(nombre_partes) > 2 else nombre_partes[0]
-                nombre_completo = f"{nombres} {apellidos}"
-            else:
-                nombre_completo = participante['nombre_completo']
+            # Configurar color del texto: rgba(4, 68, 153) -> RGB en escala 0-1
+            can.setFillColorRGB(4/255, 68/255, 153/255)
             
-            # Centrar el texto (ajustar coordenadas según plantilla)
-            text_width = can.stringWidth(nombre_completo, "OldStandardTT-Bold", 24)
-            x = (letter[0] - text_width) / 2
-            y = letter[1] / 2  # Ajustar según necesidad
+            # Usar el nombre completo tal como está en el CSV (ya está en formato correcto)
+            nombre_completo = participante['nombre_completo']
             
-            can.drawString(x, y, nombre_completo)
+            # Centrar el texto horizontalmente usando drawCentredString
+            # La posición X será el centro de la página automáticamente
+            x_center = page_width / 2
+            
+            # Posición vertical: aproximadamente en el centro vertical de la plantilla
+            # Para una plantilla horizontal de ~612pt de alto, el centro está alrededor de 306pt
+            y = page_height / 1.85
+            
+            # Usar drawCentredString para centrado automático
+            can.drawCentredString(x_center, y, nombre_completo)
             can.save()
             
             # Combinar
@@ -409,19 +438,15 @@ def generar_constancia_pdf(participante, tipo_constancia):
             can.setFont("Helvetica", 14)
             can.drawCentredString(width/2, height - 250, "Se otorga la presente constancia a:")
             
-            # Nombre
+            # Nombre con tamaño más grande
+            font_size = 32
             try:
-                can.setFont("OldStandardTT-Bold", 24)
+                can.setFont("OldStandardTT-Bold", font_size)
             except:
-                can.setFont("Helvetica-Bold", 24)
+                can.setFont("Helvetica-Bold", font_size)
             
-            nombre_partes = participante['nombre_completo'].split()
-            if len(nombre_partes) >= 2:
-                nombres = ' '.join(nombre_partes[2:]) if len(nombre_partes) > 2 else nombre_partes[-1]
-                apellidos = ' '.join(nombre_partes[:2]) if len(nombre_partes) > 2 else nombre_partes[0]
-                nombre_completo = f"{nombres} {apellidos}"
-            else:
-                nombre_completo = participante['nombre_completo']
+            # Usar el nombre completo tal como está en el CSV
+            nombre_completo = participante['nombre_completo']
             
             can.drawCentredString(width/2, height - 300, nombre_completo)
             
@@ -607,6 +632,10 @@ if email:
                         if guardar_respuestas_encuesta(email, respuestas, participantes_df):
                             st.success("✅ ¡Encuesta enviada exitosamente!")
                             st.balloons()
+                            # Limpiar cache para forzar recarga de datos
+                            cargar_datos.clear()
+                            # Pequeño delay para que el usuario vea el mensaje de éxito
+                            time.sleep(1)
                             st.rerun()
         
         else:
@@ -622,33 +651,31 @@ if email:
                 if elegibilidad['elegible_general']:
                     st.markdown("#### 🏆 Participación General")
                     st.info("Constancia por asistir a la JII 2025")
-                    if st.button("📥 Descargar", key="btn_general", use_container_width=True):
-                        pdf_buffer = generar_constancia_pdf(participante, 'general')
-                        if pdf_buffer:
-                            st.download_button(
-                                label="💾 Guardar PDF",
-                                data=pdf_buffer,
-                                file_name=f"Constancia_JII2025_{participante['nombre_completo'].replace(' ', '_')}.pdf",
-                                mime="application/pdf",
-                                key="download_general",
-                                use_container_width=True
-                            )
+                    pdf_buffer = generar_constancia_pdf(participante, 'general')
+                    if pdf_buffer:
+                        st.download_button(
+                            label="Descargar PDF",
+                            data=pdf_buffer,
+                            file_name=f"Constancia_JII2025_{participante['nombre_completo'].replace(' ', '_')}.pdf",
+                            mime="application/pdf",
+                            key="download_general",
+                            use_container_width=True
+                        )
             
             with col2:
                 if elegibilidad['participo_workshop']:
                     st.markdown("#### 🔧 Workshop")
                     st.info("Constancia por participar en Workshop")
-                    if st.button("📥 Descargar", key="btn_workshop", use_container_width=True):
-                        pdf_buffer = generar_constancia_pdf(participante, 'workshop')
-                        if pdf_buffer:
-                            st.download_button(
-                                label="💾 Guardar PDF",
-                                data=pdf_buffer,
-                                file_name=f"Constancia_Workshop_JII2025_{participante['nombre_completo'].replace(' ', '_')}.pdf",
-                                mime="application/pdf",
-                                key="download_workshop",
-                                use_container_width=True
-                            )
+                    pdf_buffer = generar_constancia_pdf(participante, 'workshop')
+                    if pdf_buffer:
+                        st.download_button(
+                            label="Descargar PDF",
+                            data=pdf_buffer,
+                            file_name=f"Constancia_Workshop_JII2025_{participante['nombre_completo'].replace(' ', '_')}.pdf",
+                            mime="application/pdf",
+                            key="download_workshop",
+                            use_container_width=True
+                        )
                 else:
                     st.markdown("#### 🔧 Workshop")
                     st.warning("No elegible")
@@ -657,17 +684,16 @@ if email:
                 if elegibilidad['participo_mundialito']:
                     st.markdown("#### ⚽ Mundialito")
                     st.info("Constancia por participar en Mundialito")
-                    if st.button("📥 Descargar", key="btn_mundialito", use_container_width=True):
-                        pdf_buffer = generar_constancia_pdf(participante, 'mundialito')
-                        if pdf_buffer:
-                            st.download_button(
-                                label="💾 Guardar PDF",
-                                data=pdf_buffer,
-                                file_name=f"Constancia_Mundialito_JII2025_{participante['nombre_completo'].replace(' ', '_')}.pdf",
-                                mime="application/pdf",
-                                key="download_mundialito",
-                                use_container_width=True
-                            )
+                    pdf_buffer = generar_constancia_pdf(participante, 'mundialito')
+                    if pdf_buffer:
+                        st.download_button(
+                            label="Descargar PDF",
+                            data=pdf_buffer,
+                            file_name=f"Constancia_Mundialito_JII2025_{participante['nombre_completo'].replace(' ', '_')}.pdf",
+                            mime="application/pdf",
+                            key="download_mundialito",
+                            use_container_width=True
+                        )
                 else:
                     st.markdown("#### ⚽ Mundialito")
                     st.warning("No elegible")
