@@ -406,7 +406,7 @@ def generar_constancia_pdf(participante, tipo_constancia):
             
             # Posición vertical: aproximadamente en el centro vertical de la plantilla
             # Para una plantilla horizontal de ~612pt de alto, el centro está alrededor de 306pt
-            y = page_height / 1.85
+            y = page_height / 1.80
             
             # Usar drawCentredString para centrado automático
             can.drawCentredString(x_center, y, nombre_completo)
