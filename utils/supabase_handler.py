@@ -201,6 +201,164 @@ class SupabaseHandler:
             
         except Exception as e:
             raise Exception(f"Error al obtener respuestas por pregunta: {str(e)}")
+    
+    def verificar_encuesta_completada(self, email):
+        """
+        Verifica si un participante ya completó la encuesta
+        
+        Args:
+            email (str): Email del participante
+        
+        Returns:
+            bool: True si completó la encuesta, False si no
+        """
+        try:
+            if not self.client:
+                self.connect()
+            
+            response = self.client.table('participantes')\
+                .select('encuesta_completada')\
+                .eq('email', email.lower())\
+                .execute()
+            
+            if response.data and len(response.data) > 0:
+                return response.data[0].get('encuesta_completada', False)
+            
+            return False
+            
+        except Exception as e:
+            raise Exception(f"Error al verificar encuesta: {str(e)}")
+    
+    def marcar_encuesta_completada(self, email):
+        """
+        Marca la encuesta como completada para un participante
+        
+        Args:
+            email (str): Email del participante
+        
+        Returns:
+            bool: True si se actualizó exitosamente
+        """
+        try:
+            if not self.client:
+                self.connect()
+            
+            response = self.client.table('participantes')\
+                .update({'encuesta_completada': True})\
+                .eq('email', email.lower())\
+                .execute()
+            
+            return True
+            
+        except Exception as e:
+            raise Exception(f"Error al marcar encuesta completada: {str(e)}")
+    
+    def obtener_participante(self, email):
+        """
+        Obtiene los datos de un participante desde Supabase
+        
+        Args:
+            email (str): Email del participante
+        
+        Returns:
+            dict: Datos del participante o None si no existe
+        """
+        try:
+            if not self.client:
+                self.connect()
+            
+            response = self.client.table('participantes')\
+                .select('*')\
+                .eq('email', email.lower())\
+                .execute()
+            
+            if response.data and len(response.data) > 0:
+                return response.data[0]
+            
+            return None
+            
+        except Exception as e:
+            raise Exception(f"Error al obtener participante: {str(e)}")
+    
+    def obtener_todos_participantes(self):
+        """
+        Obtiene todos los participantes desde Supabase
+        
+        Returns:
+            list: Lista de diccionarios con los participantes
+        """
+        try:
+            if not self.client:
+                self.connect()
+            
+            response = self.client.table('participantes')\
+                .select('*')\
+                .execute()
+            
+            return response.data if response.data else []
+            
+        except Exception as e:
+            raise Exception(f"Error al obtener participantes: {str(e)}")
+    
+    def obtener_todas_asistencias(self):
+        """
+        Obtiene todas las asistencias desde Supabase
+        
+        Returns:
+            list: Lista de diccionarios con las asistencias
+        """
+        try:
+            if not self.client:
+                self.connect()
+            
+            response = self.client.table('asistencias')\
+                .select('*')\
+                .execute()
+            
+            return response.data if response.data else []
+            
+        except Exception as e:
+            raise Exception(f"Error al obtener asistencias: {str(e)}")
+    
+    def obtener_todas_actividades(self):
+        """
+        Obtiene todas las actividades desde Supabase
+        
+        Returns:
+            list: Lista de diccionarios con las actividades
+        """
+        try:
+            if not self.client:
+                self.connect()
+            
+            response = self.client.table('actividades')\
+                .select('*')\
+                .execute()
+            
+            return response.data if response.data else []
+            
+        except Exception as e:
+            raise Exception(f"Error al obtener actividades: {str(e)}")
+    
+    def obtener_todos_equipos(self):
+        """
+        Obtiene todos los equipos del concurso desde Supabase
+        
+        Returns:
+            list: Lista de diccionarios con los equipos
+        """
+        try:
+            if not self.client:
+                self.connect()
+            
+            response = self.client.table('equipos_concurso')\
+                .select('*')\
+                .execute()
+            
+            return response.data if response.data else []
+            
+        except Exception as e:
+            raise Exception(f"Error al obtener equipos: {str(e)}")
 
 
 # Función de utilidad para uso rápido

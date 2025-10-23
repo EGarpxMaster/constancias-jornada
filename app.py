@@ -4,6 +4,10 @@ Aplicación Principal - Sistema de Constancias JII 2025
 import streamlit as st
 from pathlib import Path
 
+# Cargar variables de entorno
+from dotenv import load_dotenv
+load_dotenv()
+
 # Configuración de la página
 st.set_page_config(
     page_title="Sistema de Constancias - JII 2025",

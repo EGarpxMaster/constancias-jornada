@@ -14,6 +14,10 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from PyPDF2 import PdfReader, PdfWriter
 
+# Cargar variables de entorno ANTES de importar handlers
+from dotenv import load_dotenv
+load_dotenv()  # Carga el archivo .env
+
 # Importar handler de almacenamiento persistente (Supabase)
 try:
     from utils.supabase_handler import SupabaseHandler
@@ -245,41 +249,37 @@ for pregunta in PREGUNTAS_GENERALES + PREGUNTAS_WORKSHOP + PREGUNTAS_MUNDIALITO:
 # Funciones auxiliares
 @st.cache_data
 def cargar_datos():
-    """Carga los datos de participantes, asistencias, actividades y equipos"""
+    """Carga los datos de participantes, asistencias, actividades y equipos desde Supabase"""
     try:
-        # Debug: mostrar rutas que se están usando
-        participantes_path = DATA_DIR / "participantes.csv"
-        asistencias_path = DATA_DIR / "asistencias.csv"
-        actividades_path = DATA_DIR / "actividades.csv"
-        equipos_path = DATA_DIR / "equipos_concurso.csv"
+        if not SUPABASE_AVAILABLE:
+            st.error("❌ Supabase no está disponible. Contacta al administrador.")
+            return None, None, None, None
         
-        # Verificar que los archivos existen
-        if not participantes_path.exists():
-            st.error(f"❌ No se encuentra el archivo: {participantes_path}")
-            return None, None, None, None
-        if not asistencias_path.exists():
-            st.error(f"❌ No se encuentra el archivo: {asistencias_path}")
-            return None, None, None, None
-        if not actividades_path.exists():
-            st.error(f"❌ No se encuentra el archivo: {actividades_path}")
-            return None, None, None, None
-        if not equipos_path.exists():
-            st.error(f"❌ No se encuentra el archivo: {equipos_path}")
-            return None, None, None, None
-            
-        participantes = pd.read_csv(participantes_path)
-        asistencias = pd.read_csv(asistencias_path)
-        actividades = pd.read_csv(actividades_path)
-        equipos = pd.read_csv(equipos_path)
+        # Conectar a Supabase
+        supabase_handler = SupabaseHandler()
+        supabase_handler.connect()
         
-        # Agregar columna encuesta_completada si no existe
-        if 'encuesta_completada' not in participantes.columns:
-            participantes['encuesta_completada'] = False
-            
+        # Obtener datos de todas las tablas
+        participantes_data = supabase_handler.obtener_todos_participantes()
+        asistencias_data = supabase_handler.obtener_todas_asistencias()
+        actividades_data = supabase_handler.obtener_todas_actividades()
+        equipos_data = supabase_handler.obtener_todos_equipos()
+        
+        # Convertir a DataFrames
+        participantes = pd.DataFrame(participantes_data)
+        asistencias = pd.DataFrame(asistencias_data)
+        actividades = pd.DataFrame(actividades_data)
+        equipos = pd.DataFrame(equipos_data)
+        
+        # Verificar que se obtuvieron datos
+        if participantes.empty:
+            st.warning("⚠️ No se encontraron participantes en la base de datos.")
+            return None, None, None, None
+        
         return participantes, asistencias, actividades, equipos
+        
     except Exception as e:
-        st.error(f"❌ Error al cargar datos: {e}")
-        st.error(f"📁 DATA_DIR configurado como: {DATA_DIR}")
+        st.error(f"❌ Error al cargar datos desde Supabase: {str(e)}")
         return None, None, None, None
 
 def verificar_elegibilidad(email, participantes, asistencias, equipos):
@@ -317,19 +317,32 @@ def verificar_elegibilidad(email, participantes, asistencias, equipos):
             es_miembro_3.any(), es_miembro_4.any(), es_miembro_5.any()
         ])
     
+    # Verificar encuesta_completada desde Supabase
+    encuesta_completada = False
+    if SUPABASE_AVAILABLE:
+        try:
+            supabase_handler = SupabaseHandler()
+            supabase_handler.connect()
+            encuesta_completada = supabase_handler.verificar_encuesta_completada(email)
+        except Exception as e:
+            # Si falla Supabase, usar el valor del CSV como fallback
+            encuesta_completada = participante.get('encuesta_completada', False)
+    else:
+        encuesta_completada = participante.get('encuesta_completada', False)
+    
     elegibilidad = {
         'participante': participante,
         'num_asistencias': num_asistencias,
         'participo_workshop': participo_workshop,
         'participo_mundialito': participo_mundialito,
         'elegible_general': num_asistencias >= 2,
-        'encuesta_completada': participante.get('encuesta_completada', False)
+        'encuesta_completada': encuesta_completada
     }
     
     return elegibilidad, None
 
 def guardar_respuestas_encuesta(email, respuestas, participantes_df):
-    """Guarda las respuestas de la encuesta en Supabase y como respaldo en CSV"""
+    """Guarda las respuestas de la encuesta en Supabase"""
     try:
         # Obtener nombre completo del participante
         participante = participantes_df[participantes_df['email'].str.lower() == email.lower()]
@@ -338,57 +351,30 @@ def guardar_respuestas_encuesta(email, respuestas, participantes_df):
             return False
         nombre_completo = participante.iloc[0]['nombre_completo']
         
-        # 1. Intentar guardar en Supabase (almacenamiento persistente)
-        cloud_storage_success = False
+        # Guardar en Supabase
+        if not SUPABASE_AVAILABLE:
+            st.error("❌ Supabase no está disponible. Contacta al administrador.")
+            return False
         
-        if SUPABASE_AVAILABLE:
-            try:
-                supabase_handler = SupabaseHandler()
-                supabase_handler.guardar_respuestas(email, nombre_completo, respuestas, PREGUNTAS_DICT)
-                cloud_storage_success = True
-                st.success("✅ Respuestas guardadas")
-            except Exception as e:
-                st.warning(f"⚠️ Base de datos no disponible: {str(e)[:80]}...")
+        try:
+            supabase_handler = SupabaseHandler()
+            supabase_handler.connect()
+            
+            # Guardar respuestas
+            supabase_handler.guardar_respuestas(email, nombre_completo, respuestas, PREGUNTAS_DICT)
+            
+            # Marcar encuesta como completada
+            supabase_handler.marcar_encuesta_completada(email)
+            
+            st.success("✅ Respuestas guardadas exitosamente")
+            return True
+            
+        except Exception as e:
+            st.error(f"❌ Error al guardar en Supabase: {str(e)[:100]}")
+            return False
         
-        # Si Supabase no funcionó, mostrar advertencia
-        if not cloud_storage_success:
-            st.warning("⚠️ Almacenamiento en la nube no configurado")
-            st.info("💡 Las respuestas se guardarán solo localmente. Configura Supabase para almacenamiento persistente. Ver OPCION_SIMPLE_SUPABASE.md")
-        
-        # 2. Guardar en CSV local como respaldo (siempre)
-        respuestas_file = DATA_DIR / "encuesta_respuestas.csv"
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        respuestas_data = []
-        
-        for pregunta_id, respuesta in respuestas.items():
-            respuestas_data.append({
-                'participante_email': email,
-                'pregunta_id': pregunta_id,
-                'respuesta': respuesta,
-                'fecha': timestamp
-            })
-        
-        df_respuestas = pd.DataFrame(respuestas_data)
-        
-        # Guardar o actualizar respuestas en CSV
-        if respuestas_file.exists():
-            df_existente = pd.read_csv(respuestas_file)
-            if not df_existente.empty and 'participante_email' in df_existente.columns:
-                df_existente = df_existente[df_existente['participante_email'].str.lower() != email.lower()]
-                df_respuestas = pd.concat([df_existente, df_respuestas], ignore_index=True)
-        
-        df_respuestas.to_csv(respuestas_file, index=False)
-        
-        # 3. Actualizar participantes.csv
-        participantes_df.loc[participantes_df['email'].str.lower() == email.lower(), 'encuesta_completada'] = True
-        participantes_df.to_csv(DATA_DIR / "participantes.csv", index=False)
-        
-        if not cloud_storage_success:
-            st.info("💾 Respuestas guardadas localmente como respaldo.")
-        
-        return True
     except Exception as e:
-        st.error(f"❌ Error al guardar respuestas: {e}")
+        st.error(f"❌ Error inesperado: {str(e)}")
         return False
 
 def generar_constancia_pdf(participante, tipo_constancia):
