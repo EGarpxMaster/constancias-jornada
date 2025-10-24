@@ -335,7 +335,7 @@ def verificar_elegibilidad(email, participantes, asistencias, equipos):
         'num_asistencias': num_asistencias,
         'participo_workshop': participo_workshop,
         'participo_mundialito': participo_mundialito,
-        'elegible_general': num_asistencias >= 2,
+        'elegible_general': num_asistencias >= 1,
         'encuesta_completada': encuesta_completada
     }
     
