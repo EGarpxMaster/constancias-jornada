@@ -644,10 +644,24 @@ if email:
                 submitted = st.form_submit_button("✅ Enviar Encuesta", type="primary", use_container_width=True)
                 
                 if submitted:
-                    # Validar respuestas obligatorias (incluyendo que no sean el placeholder)
+                    # Validar respuestas obligatorias (todas excepto id 16 - Comentarios adicionales)
                     placeholders = ["Selecciona una calificación", "Selecciona una conferencia", "Selecciona una actividad"]
-                    respuestas_vacias = [p['texto'] for p in PREGUNTAS_GENERALES[:8] 
-                                        if not respuestas.get(p['id']) or respuestas.get(p['id']) in placeholders]
+                    
+                    # Validar preguntas generales (todas excepto id 16)
+                    respuestas_vacias = [p['texto'] for p in PREGUNTAS_GENERALES 
+                                        if p['id'] != 16 and (not respuestas.get(p['id']) or respuestas.get(p['id']) in placeholders)]
+                    
+                    # Validar preguntas de workshop si participó
+                    if elegibilidad['participo_workshop']:
+                        respuestas_vacias_workshop = [p['texto'] for p in PREGUNTAS_WORKSHOP 
+                                                     if not respuestas.get(p['id']) or respuestas.get(p['id']) in placeholders]
+                        respuestas_vacias.extend(respuestas_vacias_workshop)
+                    
+                    # Validar preguntas de mundialito si participó
+                    if elegibilidad['participo_mundialito']:
+                        respuestas_vacias_mundialito = [p['texto'] for p in PREGUNTAS_MUNDIALITO 
+                                                        if not respuestas.get(p['id']) or respuestas.get(p['id']) in placeholders]
+                        respuestas_vacias.extend(respuestas_vacias_mundialito)
                     
                     if respuestas_vacias:
                         st.error("⚠️ Por favor, completa todas las preguntas obligatorias y selecciona opciones válidas.")
