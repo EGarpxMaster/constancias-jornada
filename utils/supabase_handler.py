@@ -282,16 +282,18 @@ class SupabaseHandler:
     
     def obtener_todos_participantes(self):
         """
-        Obtiene todos los participantes desde Supabase
+        Obtiene todos los participantes desde Supabase usando la vista completa
+        que incluye el cálculo de total_asistencias
         
         Returns:
-            list: Lista de diccionarios con los participantes
+            list: Lista de diccionarios con los participantes y sus estadísticas
         """
         try:
             if not self.client:
                 self.connect()
             
-            response = self.client.table('participantes')\
+            # Usar la vista que ya calcula total_asistencias automáticamente
+            response = self.client.table('vista_participantes_completa')\
                 .select('*')\
                 .execute()
             

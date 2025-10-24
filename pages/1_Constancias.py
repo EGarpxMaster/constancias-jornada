@@ -292,8 +292,8 @@ def verificar_elegibilidad(email, participantes, asistencias, equipos):
     
     participante = participante.iloc[0]
     
-    # Contar asistencias
-    num_asistencias = len(asistencias[asistencias['participante_email'].str.lower() == email.lower()])
+    # Obtener número de asistencias desde la columna total_asistencias del participante
+    num_asistencias = participante.get('total_asistencias', 0)
     
     # Verificar participación en workshops (códigos W1-W6)
     asistencias_participante = asistencias[asistencias['participante_email'].str.lower() == email.lower()]
@@ -317,18 +317,8 @@ def verificar_elegibilidad(email, participantes, asistencias, equipos):
             es_miembro_3.any(), es_miembro_4.any(), es_miembro_5.any()
         ])
     
-    # Verificar encuesta_completada desde Supabase
-    encuesta_completada = False
-    if SUPABASE_AVAILABLE:
-        try:
-            supabase_handler = SupabaseHandler()
-            supabase_handler.connect()
-            encuesta_completada = supabase_handler.verificar_encuesta_completada(email)
-        except Exception as e:
-            # Si falla Supabase, usar el valor del CSV como fallback
-            encuesta_completada = participante.get('encuesta_completada', False)
-    else:
-        encuesta_completada = participante.get('encuesta_completada', False)
+    # Obtener encuesta_completada directamente de la vista (que ya incluye este campo)
+    encuesta_completada = participante.get('encuesta_completada', False)
     
     elegibilidad = {
         'participante': participante,
