@@ -7,6 +7,13 @@ import streamlit as st
 from datetime import datetime
 import os
 
+# Cargar variables de entorno ANTES de intentar usarlas
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv no instalado, asumimos que las variables ya están en el entorno
+
 try:
     from supabase import create_client, Client
     SUPABASE_AVAILABLE = True
