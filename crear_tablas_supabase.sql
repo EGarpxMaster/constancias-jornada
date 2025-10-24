@@ -293,7 +293,7 @@ SELECT
     COUNT(a.id) as total_asistencias,
     COUNT(CASE WHEN a.estado = 'asistió' THEN 1 END) as asistencias_confirmadas
 FROM public.participantes p
-LEFT JOIN public.asistencias a ON p.email = a.participante_email
+LEFT JOIN public.asistencias a ON LOWER(p.email) = LOWER(a.participante_email)
 GROUP BY p.id, p.nombre_completo, p.email, p.categoria, p.programa, p.encuesta_completada;
 
 -- ============================================================

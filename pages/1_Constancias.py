@@ -247,7 +247,7 @@ for pregunta in PREGUNTAS_GENERALES + PREGUNTAS_WORKSHOP + PREGUNTAS_MUNDIALITO:
     PREGUNTAS_DICT[pregunta['id']] = pregunta['texto']
 
 # Funciones auxiliares
-@st.cache_data
+@st.cache_data(ttl=300)  # Cache por 5 minutos (300 segundos) en producción
 def cargar_datos():
     """Carga los datos de participantes, asistencias, actividades y equipos desde Supabase"""
     try:
@@ -259,7 +259,7 @@ def cargar_datos():
         supabase_handler = SupabaseHandler()
         supabase_handler.connect()
         
-        # Obtener datos de todas las tablas
+        # Obtener datos de todas las tablas (usa vista_participantes_completa)
         participantes_data = supabase_handler.obtener_todos_participantes()
         asistencias_data = supabase_handler.obtener_todas_asistencias()
         actividades_data = supabase_handler.obtener_todas_actividades()
@@ -284,7 +284,7 @@ def cargar_datos():
 
 def verificar_elegibilidad(email, participantes, asistencias, equipos):
     """Verifica si el participante es elegible para constancias"""
-    # Buscar participante
+    # Buscar participante en la vista (que ya incluye total_asistencias)
     participante = participantes[participantes['email'].str.lower() == email.lower()]
     
     if participante.empty:
@@ -292,8 +292,9 @@ def verificar_elegibilidad(email, participantes, asistencias, equipos):
     
     participante = participante.iloc[0]
     
-    # Contar asistencias
-    num_asistencias = len(asistencias[asistencias['participante_email'].str.lower() == email.lower()])
+    # Obtener número de asistencias desde la columna total_asistencias de la vista
+    # La vista vista_participantes_completa calcula esto automáticamente
+    num_asistencias = int(participante.get('total_asistencias', 0))
     
     # Verificar participación en workshops (códigos W1-W6)
     asistencias_participante = asistencias[asistencias['participante_email'].str.lower() == email.lower()]
@@ -317,25 +318,16 @@ def verificar_elegibilidad(email, participantes, asistencias, equipos):
             es_miembro_3.any(), es_miembro_4.any(), es_miembro_5.any()
         ])
     
-    # Verificar encuesta_completada desde Supabase
-    encuesta_completada = False
-    if SUPABASE_AVAILABLE:
-        try:
-            supabase_handler = SupabaseHandler()
-            supabase_handler.connect()
-            encuesta_completada = supabase_handler.verificar_encuesta_completada(email)
-        except Exception as e:
-            # Si falla Supabase, usar el valor del CSV como fallback
-            encuesta_completada = participante.get('encuesta_completada', False)
-    else:
-        encuesta_completada = participante.get('encuesta_completada', False)
+    # Obtener encuesta_completada directamente de la vista
+    # La vista ya incluye este campo de la tabla participantes
+    encuesta_completada = participante.get('encuesta_completada', False)
     
     elegibilidad = {
         'participante': participante,
         'num_asistencias': num_asistencias,
         'participo_workshop': participo_workshop,
         'participo_mundialito': participo_mundialito,
-        'elegible_general': num_asistencias >= 1,
+        'elegible_general': num_asistencias >= 2,
         'encuesta_completada': encuesta_completada
     }
     
